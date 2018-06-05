@@ -1,0 +1,52 @@
+import glob
+import os
+import yaml
+
+f = open("10X.config.yaml")
+globals().update(yaml.load(f))
+f.close()
+
+# Create sym-links and target lists
+files = glob.glob(os.path.join(indir, "*_R1.fastq.gz"))
+
+finished = set()
+samples = dict()
+for f in files:
+    bname = os.path.basename(f)[:-12]  # Trim the path and _R1.fastq.gz
+    pname = bname[:-2]  # Trim the replicate letter (e.g., _A or _B)
+    os.makedirs(os.path.join(outdir, "fastq", pname), exist_ok=True)
+    if pname not in samples:
+        samples[pname] = []
+    samples[pname].append(bname)
+    R1 = "{}_S1_L001_R1_001.fastq.gz".format(os.path.join(outdir, "fastq", pname, bname))
+    R2 = "{}_S1_L001_R2_001.fastq.gz".format(os.path.join(outdir, "fastq", pname, bname))
+    if not os.path.exists(R1):
+        os.symlink(f, R1)
+    if not os.path.exists(R2):
+        os.symlink("{}_R2.fastq.gz".format(f[:-12]), R2)
+    finished.add("{}_finished".format(os.path.join(outdir, pname)))
+
+
+rule all:
+    input: finished
+
+
+rule processSamples:
+    output: "{outdir}/{sample}_finished"
+    params:
+        samples = lambda wildcards: ",".join(samples[wildcards.sample]),
+        genome = genome,
+        params = params
+    threads: 60
+    shell: """
+        module load cellranger
+        cellranger count \
+            --fastqs {wildcards.outdir}/fastq/{wildcards.sample} \
+            --id {wildcards.sample} {params.params} \
+            --transcriptome {params.genome} \
+            --sample {params.samples}
+        touch {output}
+        """
+
+onsuccess:
+    shell("rm -rf fastq")

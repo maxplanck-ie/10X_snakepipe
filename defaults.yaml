@@ -1,0 +1,10 @@
+snakemake_latency_wait: 300
+max_jobs: 4
+indir: 
+outdir: 
+genome: 
+params: 
+mm10: "/data/repository/misc/cellranger/refdata-cellranger-mm10-1.2.0"
+hg38: "/data/repository/misc/cellranger/refdata-cellranger-GRCh38-1.2.0"
+dm3: "/data/repository/misc/cellranger/refdata-cellranger-dm3"
+dm6: "/data/repository/misc/cellranger/refdata-cellranger-dm6"
