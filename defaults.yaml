@@ -1,5 +1,4 @@
 snakemake_latency_wait: 300
-max_jobs: 4
 indir: 
 outdir: 
 genome: 
