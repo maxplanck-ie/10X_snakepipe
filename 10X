@@ -100,6 +100,7 @@ def main():
     yaml.dump(cf, f, default_flow_style=False)
     f.close()
 
+    module_load_cmd = "module load snakemake/5.1.2 slurm &&".split()
     snakemake_cmd = """
         snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 1 --directory {workingdir} --configfile {configfile}
         """.format(latency_wait = cf["snakemake_latency_wait"],
@@ -107,7 +108,8 @@ def main():
                    workingdir = args.outdir,
                    configfile = os.path.join(args.outdir, '10X.config.yaml')).split()
 
-    p = subprocess.Popen(snakemake_cmd)
+    cmd = " ".join(module_load_cmd + snakemake_cmd)
+    p = subprocess.Popen(cmd, shell=True)
     try:
         p.wait()
     except:
