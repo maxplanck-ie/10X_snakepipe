@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+
+# __description__ = """
+# 10X single-cell ATAC data analysis pipeline v{version}
+#
+# This uses cellranger-atac and is not intended to be run elsewhere.
+#
+# usage example:
+#     10X_scATAC -i inputdir -ip interop -s sampleSheet -o outputdir mm10
+# """.format(version=__version__)
+
+import argparse
+import subprocess
+import yaml
+import sys
+import os
+from glob import glob
+
+def parse_args(defaults={"configfile": None}):
+
+    parser = argparse.ArgumentParser(prog=sys.argv[0])
+    required = parser.add_argument_group('required arguments')
+    optional = parser.add_argument_group('optional arguments')
+
+    #required
+    required.add_argument("-i",
+                        "--indir",
+                        dest = "indir",
+                        help="An input directory of bcl files.")
+
+    required.add_argument("-ip",
+                            "--interop",
+                            dest = "interop",
+                            help="the interop directory.")
+
+    required.add_argument("-o",
+                        "--outdir",
+                        dest = "outdir",
+                        help="Output directory")
+
+    required.add_argument("genome",
+                        help="genome acronym of target organism (supported: 'hg38', 'mm10'). Alternatively, you can provide the path for a custom index.")
+
+    # Optional
+    optional.add_argument("-c", "--configfile",
+                        help="configuration file: config.yaml (default: '%(default)s')",
+                        default=defaults["configfile"])
+
+    optional.add_argument("--maxjobs",
+                        type=int,
+                        default=30,
+                        help="Maximum number of jobs to run at the same time (per-sample). The default is 30.")
+
+    return parser
+
+
+# Need to handle overrides and the config file
+def main():
+    ## defaults
+    this_script_dir = os.path.dirname(os.path.realpath(__file__))
+    defaults = os.path.join(this_script_dir, "10x_scATAC.config.yaml")
+
+    ## get command line arguments
+    parser = parse_args(defaults={"configfile": defaults})
+    args = parser.parse_args()
+
+    if not os.path.exists(args.indir):
+        sys.exit("\nError! Input directory not found! ({})\n".format(args.indir))
+
+    if args.configfile and not os.path.exists(args.configfile):
+        sys.exit("\nError! Provided configfile (-c) not found! ({})\n".format(args.configfile))
+
+    f = open(args.configfile)
+    cf = yaml.load(f)
+    f.close()
+
+    # Set the params and genome
+    cf['indir'] = os.path.abspath(args.indir)
+    cf['interop'] = os.path.abspath(args.interop)
+    cf['outdir'] = os.path.abspath(args.outdir)
+    cf['sampleSheet'] = os.path.join(os.path.abspath(args.outdir) , "SampleSheet.csv")
+    if args.genome in cf:
+        cf['genome'] = cf[args.genome]
+    else:
+        cf['genome'] = args.genome
+
+    params = "--jobmode slurm --disable-ui --nopreflight --maxjobs {}".format(args.maxjobs)
+
+    cf['params'] = params
+    f = open(os.path.join(args.outdir, "10X_scATAC.config.yaml"), "w")
+    yaml.dump(cf, f, default_flow_style=False)
+    f.close()
+
+    module_load_cmd = "module load snakemake/5.16.0 slurm &&".split()
+    snakemake_cmd = """
+        snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 1 --verbose --directory {workingdir} --configfile {configfile}
+        """.format(latency_wait = cf["snakemake_latency_wait"],
+                   snakefile = os.path.join(this_script_dir, "Snakefile"),
+                   workingdir = args.outdir,
+                   configfile = os.path.join(args.outdir, '10X_scATAC.config.yaml')).split()
+
+    cmd = " ".join(module_load_cmd + snakemake_cmd)
+    p = subprocess.Popen(cmd, shell=True)
+    try:
+        p.wait()
+    except:
+        print("\nWARNING: Snakemake terminated!!!")
+        if p.returncode != 0:
+            print("Returncode:", p.returncode)
+
+            # kill snakemake and child processes
+            subprocess.call(["pkill", "-SIGTERM", "-P", str(p.pid)])
+            print("SIGTERM sent to PID:", p.pid)
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,72 @@
+import glob
+import os
+import yaml
+import pandas as pd
+
+f = open("10X_scATAC.config.yaml")
+globals().update(yaml.load(f))
+f.close()
+
+#TODO test it for samples of diffenret projets from the same or different groups
+samples_id = dict()
+projects_id = dict()
+sample_sheet = pd.read_csv(sampleSheet, sep = ",", skiprows = 1)
+for i, row in sample_sheet.iterrows():
+
+    if row["Sample_Project"] not in projects_id.keys():
+        projects_id[row["Sample_Project"]] = []
+    projects_id[row["Sample_Project"]].append(row["Sample_ID"])
+
+    if row["Sample_ID"] not in samples_id.keys():
+        samples_id[row["Sample_ID"]] = []
+    samples_id[row["Sample_ID"]].append(row["Sample_Name"])
+
+def run_cellranger():
+    files_list = []
+    for project , samples in projects_id.items():
+        for id in samples:
+            files_list.append(expand(project+"/"+id+"/{name}.done", name = samples_id[id]))
+    return files_list
+rule all:
+    input: "bcl2fastq.done",
+            run_cellranger()
+
+rule bcl2fastq:
+    input:
+        fastqs = indir,
+        interop = interop,
+        sampleSheet = sampleSheet
+    output:
+        finish = "bcl2fastq.done",
+    shell:"""
+        module load bcl2fastq2
+        mkdir -p bcl2fastq
+        bcl2fastq --use-bases-mask=Y49,I8,Y16,Y49 \
+        --create-fastq-for-index-reads --minimum-trimmed-read-length=8  \
+        --mask-short-adapter-reads=8  --ignore-missing-positions  \
+        --ignore-missing-controls  --ignore-missing-filter  \
+        --ignore-missing-bcls  -r 6 -w 6 -R {input.fastqs} \
+        --interop-dir {input.interop} \
+        --output-dir=bcl2fastq/ \
+        --sample-sheet={input.sampleSheet}
+        touch {output.finish}
+        """
+
+rule processSamples:
+    output: "{project}/{id}/{name}.done"
+    params:
+        genome = genome,
+        params = params
+    threads: 60
+    shell: """
+        module load cellranger-atac
+        cellranger-atac count \
+        --fastqs bcl2fastq/{wildcards.project} \
+        --id {wildcards.id} {params.params} \
+        --reference {params.genome} \
+        --sample {wildcards.name}
+        touch {output}
+        """
+
+# onsuccess:
+#     shell("rm -rf fastq")
