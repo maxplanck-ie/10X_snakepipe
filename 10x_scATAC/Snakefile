@@ -7,29 +7,28 @@ f = open("10X_scATAC.config.yaml")
 globals().update(yaml.load(f))
 f.close()
 
-#TODO test it for samples of diffenret projets from the same or different groups
-samples_id = dict()
 projects_id = dict()
 sample_sheet = pd.read_csv(sampleSheet, sep = ",", skiprows = 1)
 for i, row in sample_sheet.iterrows():
 
     if row["Sample_Project"] not in projects_id.keys():
         projects_id[row["Sample_Project"]] = []
-    projects_id[row["Sample_Project"]].append(row["Sample_ID"])
+    projects_id[row["Sample_Project"]].append(row["Sample_Name"])
 
-    if row["Sample_ID"] not in samples_id.keys():
-        samples_id[row["Sample_ID"]] = []
-    samples_id[row["Sample_ID"]].append(row["Sample_Name"])
 
-def run_cellranger():
+def run_rename():
     files_list = []
-    for project , samples in projects_id.items():
-        for id in samples:
-            files_list.append(expand(project+"/"+id+"/{name}.done", name = samples_id[id]))
+    files_list.append(expand("Project_{project}", project = projects_id.keys()))
     return files_list
+
+def run_finished():
+    files_list = []
+    files_list.append(expand("{project}.finished", project = projects_id.keys()))
+    return files_list
+
 rule all:
-    input: "bcl2fastq.done",
-            run_cellranger()
+    input:
+            run_finished()
 
 rule bcl2fastq:
     input:
@@ -37,10 +36,11 @@ rule bcl2fastq:
         interop = interop,
         sampleSheet = sampleSheet
     output:
-        finish = "bcl2fastq.done",
+        bcl2fastq = directory("bcl2fastq"),
+        finish = temp("bcl2fastq.done")
     shell:"""
         module load bcl2fastq2
-        mkdir -p bcl2fastq
+        mkdir -p {output.bcl2fastq}
         bcl2fastq --use-bases-mask=Y49,I8,Y16,Y49 \
         --create-fastq-for-index-reads --minimum-trimmed-read-length=8  \
         --mask-short-adapter-reads=8  --ignore-missing-positions  \
@@ -51,22 +51,58 @@ rule bcl2fastq:
         --sample-sheet={input.sampleSheet}
         touch {output.finish}
         """
-
 rule processSamples:
-    output: "{project}/{id}/{name}.done"
+    input: "bcl2fastq.done"
+    output: temp("{project}.counted")
     params:
         genome = genome,
+        samples = lambda wildcards: ",".join(projects_id[wildcards.project]),
         params = params
-    threads: 60
     shell: """
         module load cellranger-atac
         cellranger-atac count \
         --fastqs bcl2fastq/{wildcards.project} \
-        --id {wildcards.id} {params.params} \
+        --id {wildcards.project} {params.params} \
         --reference {params.genome} \
-        --sample {wildcards.name}
+        --sample {params.samples}
         touch {output}
         """
 
-# onsuccess:
-#     shell("rm -rf fastq")
+rule renameFiles:
+    input: "{project}.counted"
+    output: directory("Project_{project}")
+    params:
+        group = lambda wildcards: "{project}".split("_")[2]
+        flowcell = lambda wildcards: interop.split("/")[-2]
+    shell:"""
+        rm -rf Project_{wildcards.project}
+        rm -rf FASTQC_Project_{wildcards.project}/*
+        mv bcl2fastq/{wildcards.project} {output}
+        for i in Project_{wildcards.project}; do mv \"$i\" Sample_\"$i\"; done
+        mv {wildcards.project}/SC_ATAC_COUNTER_CS /data/{params.group}/sequencing_data/{params.flowcell}/Project_{wildcards.project}_cellrange-atac_count
+        rm -rf {wildcards.project}
+        """
+# recompute the fastqc for the updated bcl2fastq output
+rule fastqc:
+    input: "Project_{project}"
+    output: "FASTQC_Project_{project}"
+    params:
+    shell:"""
+        /package/FastQC-0.11.3/fastqc -q -t 1 -f fastq --noextract -o {output} {input}/Sample_*/*fastq.gz
+    """
+
+# move Projec & FASTQC_Project_ to the /data/sequencing repo and touch a finished file
+rule moveFiles:
+    input: "FASTQC_Project_{project}"
+    output: temp("{project}.finished")
+    params:
+        group = lambda wildcards: "{project}".split("_")[2]
+        flowcell = lambda wildcards: interop.split("/")[-2]
+#cp -r {input} /data/{params.group}/sequencing_data/{params.flowcell}
+#cp -r Project_{wildcards.project} /data/{params.group}/sequencing_data/{params.flowcell}
+    shell:"""
+        touch {output}
+        """
+
+onsuccess:
+     shell("rm -rf bcl2fastq")

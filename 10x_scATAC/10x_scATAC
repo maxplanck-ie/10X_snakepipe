@@ -54,7 +54,6 @@ def parse_args(defaults={"configfile": None}):
     return parser
 
 
-# Need to handle overrides and the config file
 def main():
     ## defaults
     this_script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -93,7 +92,7 @@ def main():
 
     module_load_cmd = "module load snakemake/5.16.0 slurm &&".split()
     snakemake_cmd = """
-        snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 1 --verbose --directory {workingdir} --configfile {configfile}
+        snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 5 -p --verbose --directory {workingdir} --configfile {configfile}
         """.format(latency_wait = cf["snakemake_latency_wait"],
                    snakefile = os.path.join(this_script_dir, "Snakefile"),
                    workingdir = args.outdir,

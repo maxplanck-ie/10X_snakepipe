@@ -4,6 +4,7 @@ outdir:
 genome:
 sampleSheet:
 interop:
+group_repo: 
 mm10: "/data/repository/misc/cellranger-atac/refdata-cellranger-atac-mm10-1.2.0/"
 hg38: "/data/repository/misc/cellranger-atac/refdata-cellranger-atac-GRCh38-1.2.0/"
 #dm3: "/data/repository/misc/cellranger-atac/refdata-cellranger-atac-dm3"
