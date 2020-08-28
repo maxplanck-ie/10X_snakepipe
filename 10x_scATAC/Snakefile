@@ -1,0 +1,110 @@
+import glob
+import os
+import yaml
+import pandas as pd
+
+f = open("10X_scATAC.config.yaml")
+globals().update(yaml.load(f))
+f.close()
+
+projects_id = dict()
+sample_sheet = pd.read_csv(sampleSheet, sep = ",", skiprows = 1)
+for i, row in sample_sheet.iterrows():
+
+    if row["Sample_Project"] not in projects_id.keys():
+        projects_id[row["Sample_Project"]] = []
+    projects_id[row["Sample_Project"]].append(row["Sample_Name"])
+
+
+def run_rename():
+    files_list = []
+    files_list.append(expand("Project_{project}", project = projects_id.keys()))
+    return files_list
+
+def run_finished():
+    files_list = []
+    files_list.append(expand("{project}.finished", project = projects_id.keys()))
+    return files_list
+
+rule all:
+    input:
+            run_finished()
+
+rule bcl2fastq:
+    input:
+        bcls = indir,
+        interop = interop,
+        sampleSheet = sampleSheet
+    output:
+        bcl2fastq = directory("bcl2fastq"),
+        finish = temp("bcl2fastq.done")
+    shell:"""
+        module load bcl2fastq2
+        mkdir -p {output.bcl2fastq}
+        bcl2fastq --use-bases-mask=Y50,I8,Y16,Y49 \
+        --create-fastq-for-index-reads --minimum-trimmed-read-length=8  \
+        --mask-short-adapter-reads=8  --ignore-missing-positions  \
+        --ignore-missing-controls  --ignore-missing-filter  \
+        --ignore-missing-bcls  -r 6 -w 6 -p 30 -R {input.bcls} \
+        --interop-dir {input.interop} \
+        --output-dir=bcl2fastq/ \
+        --sample-sheet={input.sampleSheet}
+        touch {output.finish}
+        """
+rule processSamples:
+    input: "bcl2fastq.done"
+    output: temp("{project}.counted")
+    params:
+        genome = genome,
+        samples = lambda wildcards: ",".join(projects_id[wildcards.project]),
+        params = params
+    shell: """
+        module load cellranger-atac
+        cellranger-atac count \
+        --localcores 60 \
+        --localmem 80 \
+        --fastqs bcl2fastq/{wildcards.project} \
+        --id {wildcards.project} {params.params} \
+        --reference {params.genome} \
+        --sample {params.samples}
+        touch {output}
+        """
+
+rule renameFiles:
+    input: "{project}.counted"
+    output: directory("Project_{project}")
+    params:
+        group = lambda wildcards: "{project}".split("_")[2],
+        flowcell = lambda wildcards: interop.split("/")[-2]
+    shell:"""
+        rm -rf Project_{wildcards.project}
+        rm -rf FASTQC_Project_{wildcards.project}/*
+        mv bcl2fastq/{wildcards.project} {output}
+        for i in Project_{wildcards.project}; do mv \"$i\" Sample_\"$i\"; done
+        mv {wildcards.project}/SC_ATAC_COUNTER_CS /data/{params.group}/sequencing_data/{params.flowcell}/Project_{wildcards.project}_cellrange-atac_count
+        rm -rf {wildcards.project}
+        """
+# recompute the fastqc for the updated bcl2fastq output
+rule fastqc:
+    input: "Project_{project}"
+    output: "FASTQC_Project_{project}"
+    params:
+    shell:"""
+        /package/FastQC-0.11.3/fastqc -q -t 1 -f fastq --noextract -o {output} {input}/Sample_*/*fastq.gz
+    """
+
+# move Projec & FASTQC_Project_ to the /data/sequencing repo and touch a finished file
+rule moveFiles:
+    input: "FASTQC_Project_{project}"
+    output: temp("{project}.finished")
+    params:
+        group = lambda wildcards: "{project}".split("_")[2],
+        flowcell = lambda wildcards: interop.split("/")[-2]
+#cp -r {input} /data/{params.group}/sequencing_data/{params.flowcell}
+#cp -r Project_{wildcards.project} /data/{params.group}/sequencing_data/{params.flowcell}
+    shell:"""
+        touch {output}
+        """
+
+onsuccess:
+     shell("rm -rf bcl2fastq")
