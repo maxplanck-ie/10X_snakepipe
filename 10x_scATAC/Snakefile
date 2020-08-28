@@ -41,11 +41,11 @@ rule bcl2fastq:
     shell:"""
         module load bcl2fastq2
         mkdir -p {output.bcl2fastq}
-        bcl2fastq --use-bases-mask=Y49,I8,Y16,Y49 \
+        bcl2fastq --use-bases-mask=Y50,I8,Y16,Y49 \
         --create-fastq-for-index-reads --minimum-trimmed-read-length=8  \
         --mask-short-adapter-reads=8  --ignore-missing-positions  \
         --ignore-missing-controls  --ignore-missing-filter  \
-        --ignore-missing-bcls  -r 6 -w 6 -R {input.fastqs} \
+        --ignore-missing-bcls  -r 6 -w 6 -p 30 -R {input.fastqs} \
         --interop-dir {input.interop} \
         --output-dir=bcl2fastq/ \
         --sample-sheet={input.sampleSheet}
@@ -61,6 +61,8 @@ rule processSamples:
     shell: """
         module load cellranger-atac
         cellranger-atac count \
+        --localcores 60 \
+        --localmem 80 \
         --fastqs bcl2fastq/{wildcards.project} \
         --id {wildcards.project} {params.params} \
         --reference {params.genome} \
@@ -72,7 +74,7 @@ rule renameFiles:
     input: "{project}.counted"
     output: directory("Project_{project}")
     params:
-        group = lambda wildcards: "{project}".split("_")[2]
+        group = lambda wildcards: "{project}".split("_")[2],
         flowcell = lambda wildcards: interop.split("/")[-2]
     shell:"""
         rm -rf Project_{wildcards.project}
@@ -96,7 +98,7 @@ rule moveFiles:
     input: "FASTQC_Project_{project}"
     output: temp("{project}.finished")
     params:
-        group = lambda wildcards: "{project}".split("_")[2]
+        group = lambda wildcards: "{project}".split("_")[2],
         flowcell = lambda wildcards: interop.split("/")[-2]
 #cp -r {input} /data/{params.group}/sequencing_data/{params.flowcell}
 #cp -r Project_{wildcards.project} /data/{params.group}/sequencing_data/{params.flowcell}

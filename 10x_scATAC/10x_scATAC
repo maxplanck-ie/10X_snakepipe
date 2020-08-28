@@ -51,6 +51,12 @@ def parse_args(defaults={"configfile": None}):
                         default=30,
                         help="Maximum number of jobs to run at the same time (per-sample). The default is 30.")
 
+    optional.add_argument("--mempercore",
+                        type=int,
+                        default=50,
+                        help="Maximum memory per core in GB. The default is 50G.")
+
+
     return parser
 
 
@@ -83,7 +89,7 @@ def main():
     else:
         cf['genome'] = args.genome
 
-    params = "--jobmode slurm --disable-ui --nopreflight --maxjobs {}".format(args.maxjobs)
+    params = "--jobmode slurm --disable-ui --nopreflight --mempercore {} --maxjobs {}".format(args.mempercore, args.maxjobs)
 
     cf['params'] = params
     f = open(os.path.join(args.outdir, "10X_scATAC.config.yaml"), "w")
