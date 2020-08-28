@@ -32,7 +32,7 @@ rule all:
 
 rule bcl2fastq:
     input:
-        fastqs = indir,
+        bcls = indir,
         interop = interop,
         sampleSheet = sampleSheet
     output:
@@ -45,7 +45,7 @@ rule bcl2fastq:
         --create-fastq-for-index-reads --minimum-trimmed-read-length=8  \
         --mask-short-adapter-reads=8  --ignore-missing-positions  \
         --ignore-missing-controls  --ignore-missing-filter  \
-        --ignore-missing-bcls  -r 6 -w 6 -p 30 -R {input.fastqs} \
+        --ignore-missing-bcls  -r 6 -w 6 -p 30 -R {input.bcls} \
         --interop-dir {input.interop} \
         --output-dir=bcl2fastq/ \
         --sample-sheet={input.sampleSheet}
