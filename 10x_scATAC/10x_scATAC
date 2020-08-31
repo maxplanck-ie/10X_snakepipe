@@ -56,7 +56,10 @@ def parse_args(defaults={"configfile": None}):
                         default=50,
                         help="Maximum memory per core in GB. The default is 50G.")
 
-
+    optional.add_argument("--extrnalData",
+                        default=False,
+                        action='store_true',
+                        help="Set if external data , to skip moving the files to the sequencing data directory")
     return parser
 
 
