@@ -73,38 +73,45 @@ rule processSamples:
 rule renameFiles:
     input: "{project}.counted"
     output: directory("Project_{project}")
-    params:
-        group = lambda wildcards: "{project}".split("_")[2],
-        flowcell = lambda wildcards: interop.split("/")[-2]
     shell:"""
         rm -rf Project_{wildcards.project}
         rm -rf FASTQC_Project_{wildcards.project}/*
-        mv bcl2fastq/{wildcards.project} {output}
-        for i in Project_{wildcards.project}; do mv \"$i\" Sample_\"$i\"; done
-        mv {wildcards.project}/SC_ATAC_COUNTER_CS /data/{params.group}/sequencing_data/{params.flowcell}/Project_{wildcards.project}_cellrange-atac_count
-        rm -rf {wildcards.project}
+        mv bcl2fastq/{wildcards.project} {output};
+        cd {output} && for i in *; do mv \"$i\" Sample_\"$i\"; done && cd ..
         """
+
 # recompute the fastqc for the updated bcl2fastq output
 rule fastqc:
     input: "Project_{project}"
-    output: "FASTQC_Project_{project}"
+    output: directory("FASTQC_Project_{project}")
     params:
     shell:"""
+        mkdir {output};
         /package/FastQC-0.11.3/fastqc -q -t 1 -f fastq --noextract -o {output} {input}/Sample_*/*fastq.gz
     """
 
 # move Projec & FASTQC_Project_ to the /data/sequencing repo and touch a finished file
-rule moveFiles:
-    input: "FASTQC_Project_{project}"
-    output: temp("{project}.finished")
-    params:
-        group = lambda wildcards: "{project}".split("_")[2],
-        flowcell = lambda wildcards: interop.split("/")[-2]
-#cp -r {input} /data/{params.group}/sequencing_data/{params.flowcell}
-#cp -r Project_{wildcards.project} /data/{params.group}/sequencing_data/{params.flowcell}
-    shell:"""
-        touch {output}
+if not externalData:
+  rule moveFiles:
+      input: "FASTQC_Project_{project}"
+      output: temp("{project}.finished")
+      params:
+          group = lambda wildcards: "{project}".split("_")[2],
+          flowcell = lambda wildcards: interop.split("/")[-2]
+      shell:"""
+           cp -r {input} /data/{params.group}/sequencing_data/{params.flowcell}
+           cp -r Project_{wildcards.project} /data/{params.group}/sequencing_data/{params.flowcell}
+           mv {wildcards.project}/SC_ATAC_COUNTER_CS /data/{params.group}/sequencing_data/{params.flowcell}/Project_{wildcards.project}_cellrange-atac_count
+           rm -rf {wildcards.project}
+           touch {output}
+        """
+else:
+   rule moveFiles:
+      input: "FASTQC_Project_{project}"
+      output: temp("{project}.finished")
+      shell:"""
+           touch {output}
         """
 
-onsuccess:
-     shell("rm -rf bcl2fastq")
+#onsuccess:
+#	shell("rm -rf bcl2fastq")
