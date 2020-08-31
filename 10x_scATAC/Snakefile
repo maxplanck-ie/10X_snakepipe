@@ -106,12 +106,12 @@ if not externalData:
            touch {output}
         """
 else:
-   rule moveFiles:
+  rule moveFiles:
       input: "FASTQC_Project_{project}"
       output: temp("{project}.finished")
       shell:"""
            touch {output}
         """
 
-#onsuccess:
-#	shell("rm -rf bcl2fastq")
+onsuccess:
+     shell("rm -rf bcl2fastq")
