@@ -65,7 +65,7 @@ def parse_args(defaults={"configfile": None}):
 def main():
     ## defaults
     this_script_dir = os.path.dirname(os.path.realpath(__file__))
-    defaults = os.path.join(this_script_dir, "defaults.yaml")
+    defaults = os.path.join(this_script_dir, "10x_scRNA.config.yaml")
 
     ## get command line arguments
     parser = parse_args(defaults={"configfile": defaults})
