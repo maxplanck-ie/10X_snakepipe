@@ -50,7 +50,7 @@ def parse_args(defaults={"configfile": None}):
 
     parser.add_argument("--chemistry",
                         choices=["auto", "threeprime", "fiveprime", "SC3Pv1", "SC3Pv2", "SC5P-PE", "SC5P-R2"],
-                        default="SC3Pv2",
+                        default="auto",
                         help="Assay configuration (default 'auto'). See the cellranger documentation for details.")
 
     parser.add_argument("--maxjobs",
