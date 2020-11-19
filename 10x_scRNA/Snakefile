@@ -44,7 +44,8 @@ rule processSamples:
             --fastqs {wildcards.outdir}/fastq/{wildcards.sample} \
             --id {wildcards.sample} {params.params} \
             --transcriptome {params.genome} \
-            --sample {params.samples}
+            --sample {params.samples} \
+            --disable-ui
         touch {output}
         """
 
