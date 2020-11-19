@@ -66,7 +66,8 @@ rule processSamples:
         --fastqs bcl2fastq/{wildcards.project} \
         --id {wildcards.project} {params.params} \
         --reference {params.genome} \
-        --sample {params.samples}
+        --sample {params.samples} \
+        --disable-ui
         touch {output}
         """
 
