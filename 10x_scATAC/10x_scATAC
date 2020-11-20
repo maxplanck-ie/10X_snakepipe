@@ -63,10 +63,10 @@ def parse_args(defaults={"configfile": None}):
                         choices=["local","slurm"],
                         help="Submission mode, default is local.")
 
-    optional.add_argument("--extrnalData",
-                        default=False,
-                        action='store_true',
-                        help="Set if external data , to skip moving the files to the sequencing data directory")
+    # optional.add_argument("--extrnalData",
+    #                     default=False,
+    #                     action='store_true',
+    #                     help="Set if external data , to skip moving the files to the sequencing data directory")
     return parser
 
 
