@@ -6,7 +6,7 @@
 # This uses cellranger-atac and is not intended to be run elsewhere.
 #
 # usage example:
-#     10X_scATAC -i inputdir -ip interop -s sampleSheet -o outputdir mm10
+#     10X_scATAC -i inputdir  -s sampleSheet -o outputdir mm10
 # """.format(version=__version__)
 
 import argparse
@@ -26,12 +26,8 @@ def parse_args(defaults={"configfile": None}):
     required.add_argument("-i",
                         "--indir",
                         dest = "indir",
-                        help="An input directory of bcl files.")
+                        help="An input directory of bcl or fastq files.")
 
-    required.add_argument("-ip",
-                            "--interop",
-                            dest = "interop",
-                            help="the interop directory.")
 
     required.add_argument("-o",
                         "--outdir",
@@ -42,6 +38,12 @@ def parse_args(defaults={"configfile": None}):
                         help="genome acronym of target organism (supported: 'hg38', 'mm10'). Alternatively, you can provide the path for a custom index.")
 
     # Optional
+    required.add_argument("-ip",
+                        "--interop",
+                        dest = "interop",
+                        help="the interop directory.",
+                        default=None)
+
     optional.add_argument("-c", "--configfile",
                         help="configuration file: config.yaml (default: '%(default)s')",
                         default=defaults["configfile"])
@@ -55,6 +57,11 @@ def parse_args(defaults={"configfile": None}):
                         type=int,
                         default=50,
                         help="Maximum memory per core in GB. The default is 50G.")
+
+    optional.add_argument("--mode",
+                        default="local",
+                        choices=["local","slurm"],
+                        help="Submission mode, default is local.")
 
     optional.add_argument("--extrnalData",
                         default=False,
@@ -84,7 +91,8 @@ def main():
 
     # Set the params and genome
     cf['indir'] = os.path.abspath(args.indir)
-    cf['interop'] = os.path.abspath(args.interop)
+    if args.interop:
+        cf['interop'] = os.path.abspath(args.interop)
     cf['outdir'] = os.path.abspath(args.outdir)
     cf['sampleSheet'] = os.path.join(os.path.abspath(args.outdir) , "SampleSheet.csv")
     if args.genome in cf:
@@ -92,7 +100,9 @@ def main():
     else:
         cf['genome'] = args.genome
 
-    params = "--jobmode slurm --disable-ui --nopreflight --mempercore {} --maxjobs {}".format(args.mempercore, args.maxjobs)
+    params = "--jobmode local --disable-ui --nopreflight --localcores 60 --localmem 80 "
+    if args.mode == "slurm":
+        params = "--jobmode slurm --disable-ui --nopreflight --mempercore {} --maxjobs {}".format(args.mempercore, args.maxjobs)
 
     cf['params'] = params
     f = open(os.path.join(args.outdir, "10X_scATAC.config.yaml"), "w")
