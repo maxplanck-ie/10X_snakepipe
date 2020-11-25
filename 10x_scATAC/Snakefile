@@ -8,16 +8,16 @@ globals().update(yaml.load(f))
 f.close()
 
 projects_id = dict()
-sample_sheet = pd.read_csv(sampleSheet, sep = ",", skiprows = 1)
-for i, row in sample_sheet.iterrows():
-
-    if row["Sample_Project"] not in projects_id.keys():
-        projects_id[row["Sample_Project"]] = []
-    projects_id[row["Sample_Project"]].append(row["Sample_Name"])
+if sampleSheet:
+    sample_sheet = pd.read_csv(sampleSheet, sep = ",", skiprows = 1)
+    for i, row in sample_sheet.iterrows():
+        if row["Sample_Project"] not in projects_id.keys():
+            projects_id[row["Sample_Project"]] = []
+        projects_id[row["Sample_Project"]].append(row["Sample_Name"])
+else:
+    projects_id[project] = samples
 
 def rename_fastqs(input):
-    project = os.path.split(input)[-1]
-    project = project.split("Project_")[-1]
     os.makedirs("bcl2fastq/"+project, exist_ok = True)
     for sample in os.listdir(input):
         if sample.startswith("Sample"):

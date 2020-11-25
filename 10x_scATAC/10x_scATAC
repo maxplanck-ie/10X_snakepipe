@@ -63,10 +63,15 @@ def parse_args(defaults={"configfile": None}):
                         choices=["local","slurm"],
                         help="Submission mode, default is local.")
 
-    # optional.add_argument("--extrnalData",
-    #                     default=False,
-    #                     action='store_true',
-    #                     help="Set if external data , to skip moving the files to the sequencing data directory")
+    optional.add_argument("--projectID",
+                        default=None,
+                        help="Project id. This should be given if starts the pipeline from fastq")
+
+    optional.add_argument("--samples",
+                        default=None,
+                        nargs='+',
+                        help="List of samples id of a given project. space separated."
+                        "This should be given if starts the pipeline from fastq")
     return parser
 
 
@@ -93,8 +98,17 @@ def main():
     cf['indir'] = os.path.abspath(args.indir)
     if args.interop:
         cf['interop'] = os.path.abspath(args.interop)
+        cf['sampleSheet'] = os.path.join(os.path.abspath(args.outdir) , "SampleSheet.csv")
+    else:
+        if not (args.projectID and args.samples):
+            sys.exit("both project id and list of samples should be given if starts from fastq!")
+        else:
+            cf['project'] = args.projectID
+            cf['samples'] = args.samples
+            print(args.samples)
+
+
     cf['outdir'] = os.path.abspath(args.outdir)
-    cf['sampleSheet'] = os.path.join(os.path.abspath(args.outdir) , "SampleSheet.csv")
     if args.genome in cf:
         cf['genome'] = cf[args.genome]
     else:
