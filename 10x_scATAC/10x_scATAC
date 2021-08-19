@@ -15,6 +15,7 @@ import yaml
 import sys
 import os
 from glob import glob
+import numpy as np
 
 def parse_args(defaults={"configfile": None}):
 
@@ -38,11 +39,6 @@ def parse_args(defaults={"configfile": None}):
                         help="genome acronym of target organism (supported: 'hg38', 'mm10'). Alternatively, you can provide the path for a custom index.")
 
     # Optional
-    required.add_argument("-ip",
-                        "--interop",
-                        dest = "interop",
-                        help="the interop directory.",
-                        default=None)
 
     optional.add_argument("-c", "--configfile",
                         help="configuration file: config.yaml (default: '%(default)s')",
@@ -96,16 +92,14 @@ def main():
 
     # Set the params and genome
     cf['indir'] = os.path.abspath(args.indir)
-    if args.interop:
-        cf['interop'] = os.path.abspath(args.interop)
-        cf['sampleSheet'] = os.path.join(os.path.abspath(args.outdir) , "SampleSheet.csv")
+    if not (args.projectID and args.samples):
+        sys.exit("both project id and list of samples should be given if starts from fastq!")
     else:
-        if not (args.projectID and args.samples):
-            sys.exit("both project id and list of samples should be given if starts from fastq!")
-        else:
-            cf['project'] = args.projectID
-            cf['samples'] = args.samples
-            print(args.samples)
+        cf['project'] = args.projectID
+        uniq_samples = list(set([sample[:-2] for sample in args.samples]))
+        uniq_bc = list(set([sample[-2:] for sample in args.samples]))
+        cf['samples'] = uniq_samples
+        cf['bcs'] = uniq_bc
 
 
     cf['outdir'] = os.path.abspath(args.outdir)
