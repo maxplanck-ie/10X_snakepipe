@@ -108,7 +108,7 @@ def main():
     else:
         cf['genome'] = args.genome
 
-    params = "--jobmode local --disable-ui --nopreflight --localcores 60 --localmem 80 "
+    params = "--jobmode local --disable-ui --nopreflight --localcores 60 --localmem 400 "
     if args.mode == "slurm":
         params = "--jobmode slurm --disable-ui --nopreflight --mempercore {} --maxjobs {}".format(args.mempercore, args.maxjobs)
 
@@ -119,7 +119,7 @@ def main():
 
     module_load_cmd = "module load snakemake/5.16.0 slurm &&".split()
     snakemake_cmd = """
-        snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 5 -p --verbose --directory {workingdir} --configfile {configfile}
+        snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 1 -p --verbose --directory {workingdir} --configfile {configfile}
         """.format(latency_wait = cf["snakemake_latency_wait"],
                    snakefile = os.path.join(this_script_dir, "Snakefile"),
                    workingdir = args.outdir,

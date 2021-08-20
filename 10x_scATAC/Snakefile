@@ -13,8 +13,8 @@ def rename_fastqs(input):
     for sample in os.listdir(input):
         if sample.startswith("Sample"):
             sample_name = sample.split("_")[-1]
-            os.makedirs("bcl2fastq/"+project+"/"+sample_name, exist_ok = True)
-            sample_path = os.path.join("bcl2fastq/"+project,sample_name)
+            os.makedirs("renamed_fastqs/"+project+"/"+sample_name, exist_ok = True)
+            sample_path = os.path.join("renamed_fastqs/"+project,sample_name)
             for file in glob.glob(os.path.join(input,sample, "*.fastq.gz")):
                 filename = os.path.basename(file).split(".fastq.gz")[0]
                 sufix = filename[-2:]
@@ -31,11 +31,6 @@ def rename_fastqs(input):
     return
 
 
-# def run_rename():
-#     files_list = []
-#     files_list.append(expand("Project_{project}", project = projects_id.keys()))
-#     return files_list
-
 
 def run_finished():
     files_list = []
@@ -48,13 +43,13 @@ rule all:
 
 
 
-rule bcl2fastq:
+rule rename:
     input:
         indir = indir
     output:
         finish = temp("fastq.renamed")
     params:
-        bcl2fastq = rename_fastqs(indir)
+        rename_fastqs(indir)
     shell:"""
         touch {output.finish}
         """
@@ -79,18 +74,5 @@ rule processSamples:
         touch {output}
         """
 
-# rule renameFiles:
-#     input: "{project}.counted"
-#     output: directory("Project_{project}")
-#     shell:"""
-#         rm -rf Project_{wildcards.project}
-#         rm -rf FASTQC_Project_{wildcards.project}/*
-#         mv bcl2fastq/{wildcards.project} {output};
-#         cd {output} && for i in *; do mv \"$i\" Sample_\"$i\"; done && cd ..
-#         """
-#
-
-# onsuccess:
-#      shell("rm -rf bcl2fastq")
 onerror:
     print("ERROR!")
