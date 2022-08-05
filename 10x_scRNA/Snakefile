@@ -13,7 +13,8 @@ finished = set()
 samples = dict()
 for f in files:
     bname = os.path.basename(f)[:-12]  # Trim the path and _R1.fastq.gz
-    pname = bname[:-2]  # Trim the replicate letter (e.g., _A or _B)
+    #replicate letter does not appear for scRNA
+    #pname = bname[:-2]  # Trim the replicate letter (e.g., _A or _B)
     os.makedirs(os.path.join(outdir, "fastq", pname), exist_ok=True)
     if pname not in samples:
         samples[pname] = []
