@@ -3,7 +3,7 @@ indir:
 outdir: 
 genome: 
 params: 
-mm10: "/data/repository/misc/cellranger/refdata-gex-mm10-2020-A"
-hg38: "/data/repository/misc/cellranger/refdata-gex-GRCh38-2020-A"
-dm3: "/data/repository/misc/cellranger/refdata-cellranger-dm3"
-dm6: "/data/repository/misc/cellranger/refdata-cellranger-dm6"
+mm10: "/data/repository/misc/cellranger_references/cellranger/refdata-gex-mm10-2020-A"
+hg38: "/data/repository/misc/cellranger_references/cellranger/refdata-gex-GRCh38-2020-A"
+#dm3: "/data/repository/misc/cellranger/refdata-cellranger-dm3"
+dm6: "/data/repository/misc/cellranger_references/cellranger/refdata-gex-dm6_ensembl106"
