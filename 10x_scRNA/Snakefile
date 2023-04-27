@@ -13,19 +13,17 @@ finished = set()
 samples = dict()
 for f in files:
     bname = os.path.basename(f)[:-12]  # Trim the path and _R1.fastq.gz
-    #replicate letter does not appear for scRNA
-    #pname = bname[:-2]  # Trim the replicate letter (e.g., _A or _B)
-    os.makedirs(os.path.join(outdir, "fastq", pname), exist_ok=True)
-    if pname not in samples:
-        samples[pname] = []
-    samples[pname].append(bname)
-    R1 = "{}_S1_L001_R1_001.fastq.gz".format(os.path.join(outdir, "fastq", pname, bname))
-    R2 = "{}_S1_L001_R2_001.fastq.gz".format(os.path.join(outdir, "fastq", pname, bname))
+    os.makedirs(os.path.join(outdir, "fastq", bname), exist_ok=True)
+    if bname not in samples:
+        samples[bname] = []
+    samples[bname].append(bname)
+    R1 = "{}_S1_L001_R1_001.fastq.gz".format(os.path.join(outdir, "fastq", bname, bname))
+    R2 = "{}_S1_L001_R2_001.fastq.gz".format(os.path.join(outdir, "fastq", bname, bname))
     if not os.path.exists(R1):
         os.symlink(f, R1)
     if not os.path.exists(R2):
         os.symlink("{}_R2.fastq.gz".format(f[:-12]), R2)
-    finished.add("{}_finished".format(os.path.join(outdir, pname)))
+    finished.add("{}_finished".format(os.path.join(outdir, bname)))
 
 
 rule all:
@@ -45,8 +43,7 @@ rule processSamples:
             --fastqs {wildcards.outdir}/fastq/{wildcards.sample} \
             --id {wildcards.sample} {params.params} \
             --transcriptome {params.genome} \
-            --sample {params.samples} \
-            --disable-ui
+            --sample {params.samples}
         touch {output}
         """
 
