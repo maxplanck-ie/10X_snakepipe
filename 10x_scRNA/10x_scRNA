@@ -36,23 +36,6 @@ def parse_args(defaults={"configfile": None}):
                         help="configuration file: config.yaml (default: '%(default)s')",
                         default=defaults["configfile"])
 
-    parser.add_argument("--expect-cells",
-                        dest="expectCells",
-                        type=int,
-                        default=3000,
-                        help="The expected number of cells. The cellranger default is 3000.")
-
-    parser.add_argument("--force-cells",
-                        dest="forceCells",
-                        type=int,
-                        required=False,
-                        help="Force cellranger to assume there are exactly this many cells.")
-
-    parser.add_argument("--chemistry",
-                        choices=["auto", "threeprime", "fiveprime", "SC3Pv1", "SC3Pv2", "SC5P-PE", "SC5P-R2"],
-                        default="auto",
-                        help="Assay configuration (default 'auto'). See the cellranger documentation for details.")
-
     parser.add_argument("--maxjobs",
                         type=int,
                         default=30,
@@ -60,13 +43,13 @@ def parse_args(defaults={"configfile": None}):
 
     parser.add_argument("--localcores",
                         type=int,
-                        default=50,
-                        help="Maximum number of cores, for local jobs only. The default is 50.")
+                        default=80,
+                        help="Maximum number of cores, for local jobs only. The default is 80.")
 
     parser.add_argument("--localmem",
                         type=int,
-                        default=80,
-                        help="Maximum amount of memory per core, for local jobs only. The default is 80.")
+                        default=400,
+                        help="Maximum amount of memory per core, for local jobs only. The default is 400.")
 
     return parser
 
@@ -90,7 +73,7 @@ def main():
     os.makedirs(os.path.join(args.outdir, "fastq"), exist_ok=True)
 
     f = open(args.configfile)
-    cf = yaml.load(f)
+    cf = yaml.safe_load(f)
     f.close()
 
     # Set the params and genome
@@ -102,12 +85,6 @@ def main():
         cf['genome'] = args.genome
     # --overrides???
     params = "--jobmode local --localcores {} --localmem {} --disable-ui --nopreflight --maxjobs {}".format(args.localcores, args.localmem, args.maxjobs)
-    if args.expectCells:
-        params += " --expect-cells {}".format(args.expectCells)
-    if args.forceCells:
-        params += " --force-cells {}".format(args.forceCells)
-    if args.chemistry:
-        params += " --chemistry {}".format(args.chemistry)
     cf['params'] = params
     f = open(os.path.join(args.outdir, "10X.config.yaml"), "w")
     yaml.dump(cf, f, default_flow_style=False)
@@ -115,7 +92,7 @@ def main():
 
     module_load_cmd = "module load snakemake/5.1.2 slurm &&".split()
     snakemake_cmd = """
-        snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 1 --verbose --directory {workingdir} --configfile {configfile}
+        snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 1 --directory {workingdir} --configfile {configfile}
         """.format(latency_wait = cf["snakemake_latency_wait"],
                    snakefile = os.path.join(this_script_dir, "Snakefile"),
                    workingdir = args.outdir,
