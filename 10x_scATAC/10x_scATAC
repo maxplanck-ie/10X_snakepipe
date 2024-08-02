@@ -35,97 +35,46 @@ def parse_args(defaults={"configfile": None}):
                         help="Output directory")
 
     required.add_argument("genome",
-                        help="genome acronym of target organism (supported: 'hg38', 'mm10'). Alternatively, you can provide the path for a custom index.")
+                        help="genome acronym of target organism. Should match with a path in the 10x_scATAC.config.yaml")
 
-    # Optional
-    required.add_argument("-ip",
-                        "--interop",
-                        dest = "interop",
-                        help="the interop directory.",
-                        default=None)
-
-    optional.add_argument("-c", "--configfile",
-                        help="configuration file: config.yaml (default: '%(default)s')",
-                        default=defaults["configfile"])
-
-    optional.add_argument("--maxjobs",
-                        type=int,
-                        default=30,
-                        help="Maximum number of jobs to run at the same time (per-sample). The default is 30.")
-
-    optional.add_argument("--mempercore",
-                        type=int,
-                        default=50,
-                        help="Maximum memory per core in GB. The default is 50G.")
-
-    optional.add_argument("--mode",
-                        default="local",
-                        choices=["local","slurm"],
-                        help="Submission mode, default is local.")
-
-    optional.add_argument("--projectID",
-                        default=None,
-                        help="Project id. This should be given if starts the pipeline from fastq")
-
-    optional.add_argument("--samples",
+    required.add_argument("--samples",
                         default=None,
                         nargs='+',
                         help="List of samples id of a given project. space separated."
                         "This should be given if starts the pipeline from fastq")
+    required.add_argument("--projectID",
+                        default=None,
+                        help="Name of the Project")
+
     return parser
 
 
 def main():
-    ## defaults
-    this_script_dir = os.path.dirname(os.path.realpath(__file__))
-    defaults = os.path.join(this_script_dir, "10x_scATAC.config.yaml")
-
     ## get command line arguments
-    parser = parse_args(defaults={"configfile": defaults})
+    parser = parse_args()
     args = parser.parse_args()
 
     if not os.path.exists(args.indir):
         sys.exit("\nError! Input directory not found! ({})\n".format(args.indir))
-
-    if args.configfile and not os.path.exists(args.configfile):
-        sys.exit("\nError! Provided configfile (-c) not found! ({})\n".format(args.configfile))
-
-    f = open(args.configfile)
-    cf = yaml.load(f)
-    f.close()
+    this_script_dir = os.path.dirname(__file__)
+    with open(os.path.join(this_script_dir, "10x_scATAC.config.yaml")) as f:
+        cf = yaml.safe_load(f)
 
     # Set the params and genome
-    cf['indir'] = os.path.abspath(args.indir)
-    if args.interop:
-        cf['interop'] = os.path.abspath(args.interop)
-        cf['sampleSheet'] = os.path.join(os.path.abspath(args.outdir) , "SampleSheet.csv")
-    else:
-        if not (args.projectID and args.samples):
-            sys.exit("both project id and list of samples should be given if starts from fastq!")
-        else:
-            cf['project'] = args.projectID
-            cf['samples'] = args.samples
-            print(args.samples)
-
-
-    cf['outdir'] = os.path.abspath(args.outdir)
-    if args.genome in cf:
-        cf['genome'] = cf[args.genome]
-    else:
-        cf['genome'] = args.genome
-
-    params = "--jobmode local --disable-ui --nopreflight --localcores 60 --localmem 80 "
-    if args.mode == "slurm":
-        params = "--jobmode slurm --disable-ui --nopreflight --mempercore {} --maxjobs {}".format(args.mempercore, args.maxjobs)
-
-    cf['params'] = params
+    smk_cfg = {}
+    smk_cfg['indir'] = os.path.abspath(args.indir)
+    smk_cfg['project'] = args.projectID
+    smk_cfg['samples'] = args.samples
+    smk_cfg['outdir'] = os.path.abspath(args.outdir)
+    smk_cfg['genome'] = cf[args.genome]
+    smk_cfg['cellranger_params'] = "--jobmode local --disable-ui --nopreflight --localcores 60 --localmem 400 "
     f = open(os.path.join(args.outdir, "10X_scATAC.config.yaml"), "w")
-    yaml.dump(cf, f, default_flow_style=False)
+    yaml.dump(smk_cfg, f, default_flow_style=False)
     f.close()
 
-    module_load_cmd = "module load snakemake/5.16.0 slurm &&".split()
+    module_load_cmd = "module load snakemake/5.16.0 &&".split()
     snakemake_cmd = """
-        snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 5 -p --verbose --directory {workingdir} --configfile {configfile}
+        snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 1 -p --verbose --directory {workingdir} --configfile {configfile}
         """.format(latency_wait = cf["snakemake_latency_wait"],
                    snakefile = os.path.join(this_script_dir, "Snakefile"),
                    workingdir = args.outdir,

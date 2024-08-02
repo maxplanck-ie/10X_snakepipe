@@ -2,10 +2,8 @@ snakemake_latency_wait: 300
 indir:
 outdir:
 genome:
-sampleSheet:
-interop:
 group_repo: 
 mm10: "/data/repository/misc/cellranger_references/cellranger-atac/refdata-cellranger-atac-mm10-2020-A-2.0.0"
 hg38: "/data/repository/misc/cellranger_references/cellranger-atac/refdata-cellranger-atac-GRCh38-2020-A-2.0.0"
-#dm3: "/data/repository/misc/cellranger-atac/refdata-cellranger-atac-dm3"
+GRCh38_gencode40: "/data/repository/misc/cellranger_references/cellranger-atac/refdata-cellranger-atac-GRCh38-2020-A-2.0.0"
 dm6: "/data/repository/misc/cellranger_references/cellranger-atac/refdata-cellranger-atac-dm6_ensembl106"
