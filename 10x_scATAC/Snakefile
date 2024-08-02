@@ -45,5 +45,6 @@ rule processSamples:
         --fastqs {params.fqdir} \
         --id {params.sample} \
         --reference {params.genome} \
-        --sample {params.sample}
+        --sample {params.sample} \
+        {params.params}
         """
