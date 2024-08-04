@@ -11,11 +11,16 @@ print(config)
 fqlndir = Path(config['outdir']) / 'fq_ln'
 fqlndir.mkdir(parents=True, exist_ok=True)
 
+allsamples = []
+for base in config['samples']:
+    for sample in config['samples'][base]:
+        allsamples.append(sample)
+
 # Glob over all fastq files in Project directory, and link them in appropriately
 for fqfile in list(Path(config['indir']).rglob("*fastq.gz")):
   if 'optical' not in str(fqfile):
     sambase = re.sub(r"_[RI][123].fastq.gz",'',fqfile.name)
-    if sambase in config['samples']:
+    if sambase in allsamples:
       # R1 from path/sample_R1.fastq.gz
       Rtype = fqfile.with_suffix('').with_suffix('').name.split('_')[-1]
       # sample_S1_L001_I1_001.fastq.gz
@@ -27,14 +32,15 @@ rule all:
   input:
     expand(
         config['outdir'] + "/{sample}.done",
-        sample=config['samples']
+        sample=config['samples'].keys()
     )
 
 rule processSamples:
     output: touch( config['outdir'] + "/{sample}.done" )
     params:
         genome = config['genome'],
-        sample = lambda wildcards: wildcards.sample,
+        id = lambda wildcards: wildcards.sample,
+        samples = lambda wildcards: ','.join(config['samples'][wildcards.sample]),
         params = config['cellranger_params'],
         fqdir = fqlndir,
         odir = config['outdir']
@@ -43,8 +49,8 @@ rule processSamples:
         module load cellranger-atac
         cellranger-atac count \
         --fastqs {params.fqdir} \
-        --id {params.sample} \
+        --id {params.id} \
         --reference {params.genome} \
-        --sample {params.sample} \
+        --sample {params.samples} \
         {params.params}
         """
