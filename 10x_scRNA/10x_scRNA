@@ -104,8 +104,11 @@ def main():
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     for _l in p.stdout:
         logf.write(_l.strip() + '\n')
+        print(_l.strip())
     p.wait()
     logf.close()
+    if p.returncode != 0:
+        sys.exit("Snakemake command failed")
 
 if __name__ == "__main__":
     main()
