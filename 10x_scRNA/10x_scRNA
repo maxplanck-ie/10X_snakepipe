@@ -66,9 +66,11 @@ def main():
 
     if not os.path.exists(args.indir):
         sys.exit("\nError! Input directory not found! ({})\n".format(args.indir))
+    logf = open(os.path.join(args.indir, '10X_BRB.log'), 'w')
 
     if args.configfile and not os.path.exists(args.configfile):
-        sys.exit("\nError! Provided configfile (-c) not found! ({})\n".format(args.configfile))
+        logf.write(f"Provided configfile not found {args.configfile}.")
+        sys.exit(f"Provided configfile not found {args.configfile}.")
 
     os.makedirs(os.path.join(args.outdir, "fastq"), exist_ok=True)
 
@@ -101,7 +103,7 @@ def main():
     cmd = " ".join(module_load_cmd + snakemake_cmd)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     for _l in p.stdout:
-        sys.stdout.write(_l.strip() + '\n')
+        logf.write(_l.strip() + '\n')
     p.wait()
 
 if __name__ == "__main__":
