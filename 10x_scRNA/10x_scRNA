@@ -99,7 +99,9 @@ def main():
                    configfile = os.path.join(args.outdir, '10X.config.yaml')).split()
 
     cmd = " ".join(module_load_cmd + snakemake_cmd)
-    p = subprocess.Popen(cmd, shell=True)
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    for _l in p.stdout:
+        sys.stdout.write(_l.strip() + '\n')
     p.wait()
 
 if __name__ == "__main__":
