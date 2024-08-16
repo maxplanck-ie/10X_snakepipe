@@ -105,6 +105,7 @@ def main():
     for _l in p.stdout:
         logf.write(_l.strip() + '\n')
     p.wait()
+    logf.close()
 
 if __name__ == "__main__":
     main()
