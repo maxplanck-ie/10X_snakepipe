@@ -100,17 +100,7 @@ def main():
 
     cmd = " ".join(module_load_cmd + snakemake_cmd)
     p = subprocess.Popen(cmd, shell=True)
-    try:
-        p.wait()
-    except:
-        print("\nWARNING: Snakemake terminated!!!")
-        if p.returncode != 0:
-            print("Returncode:", p.returncode)
-
-            # kill snakemake and child processes
-            subprocess.call(["pkill", "-SIGTERM", "-P", str(p.pid)])
-            print("SIGTERM sent to PID:", p.pid)
-            sys.exit("Snakemake failed.")
+    p.wait()
 
 if __name__ == "__main__":
     main()
