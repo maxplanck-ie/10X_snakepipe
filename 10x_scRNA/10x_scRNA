@@ -110,6 +110,7 @@ def main():
             # kill snakemake and child processes
             subprocess.call(["pkill", "-SIGTERM", "-P", str(p.pid)])
             print("SIGTERM sent to PID:", p.pid)
+            sys.exit("Snakemake failed.")
 
 if __name__ == "__main__":
     main()
