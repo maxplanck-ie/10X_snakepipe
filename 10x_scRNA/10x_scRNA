@@ -92,7 +92,7 @@ def main():
     yaml.dump(cf, f, default_flow_style=False)
     f.close()
 
-    module_load_cmd = "module load snakemake/5.1.2 slurm &&".split()
+    module_load_cmd = "module load snakemake/5.16.0 slurm &&".split()
     snakemake_cmd = """
         snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 1 --directory {workingdir} --configfile {configfile}
         """.format(latency_wait = cf["snakemake_latency_wait"],
