@@ -4,6 +4,7 @@ outdir:
 genome: 
 params: 
 mouse: "/data/repository/misc/cellranger_references/cellranger/refdata-gex-mm10-2020-A"
+mm10_gencodeM19: "/data/repository/misc/cellranger_references/cellranger/refdata-gex-mm10-2020-A"
 human: "/data/repository/misc/cellranger_references/cellranger/refdata-gex-GRCh38-2020-A"
 #dm3: "/data/repository/misc/cellranger/refdata-cellranger-dm3"
 fly: "/data/repository/misc/cellranger_references/cellranger/refdata-gex-dm6_ensembl106"

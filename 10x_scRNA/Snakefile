@@ -40,6 +40,7 @@ rule processSamples:
     shell: """
         module load cellranger
         cellranger count \
+            --create-bam true \
             --fastqs {wildcards.outdir}/fastq/{wildcards.sample} \
             --id {wildcards.sample} {params.params} \
             --transcriptome {params.genome} \
