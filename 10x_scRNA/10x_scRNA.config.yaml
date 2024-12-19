@@ -8,4 +8,4 @@ mm10_gencodeM19: "/data/repository/misc/cellranger_references/cellranger/refdata
 human: "/data/repository/misc/cellranger_references/cellranger/refdata-gex-GRCh38-2020-A"
 #dm3: "/data/repository/misc/cellranger/refdata-cellranger-dm3"
 fly: "/data/repository/misc/cellranger_references/cellranger/refdata-gex-dm6_ensembl106"
-GRChm39: "/data/repository/misc/cellranger_references/cellranger/refdata-gex-GRCm39-2024-A"
+GRCm39: "/data/repository/misc/cellranger_references/cellranger/refdata-gex-GRCm39-2024-A"
