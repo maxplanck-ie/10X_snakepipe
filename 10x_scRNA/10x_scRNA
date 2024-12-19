@@ -81,10 +81,16 @@ def main():
     # Set the params and genome
     cf['indir'] = os.path.abspath(args.indir)
     cf['outdir'] = os.path.abspath(args.outdir)
-    if args.genome in cf:
-        cf['genome'] = cf[args.genome]
+
+    genome = args.genome
+    if "GRCm39" in genome:
+        # as GRCm39 passed the snakePipes YAML
+        genome = "GRCm39"
+
+    if genome in cf:
+        cf['genome'] = cf[genome]
     else:
-        cf['genome'] = args.genome
+        cf['genome'] = genome
     # --overrides???
     params = "--jobmode local --localcores {} --localmem {} --disable-ui --nopreflight --maxjobs {}".format(args.localcores, args.localmem, args.maxjobs)
     cf['params'] = params
