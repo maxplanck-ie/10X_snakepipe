@@ -46,8 +46,7 @@ rule processSamples:
         odir = config['outdir']
     shell: """
         cd {params.odir}
-        module load cellranger-atac
-        cellranger-atac count \
+        /localenv/pipegrp/cellranger-atac-2.2.0/cellranger-atac count \
         --fastqs {params.fqdir} \
         --id {params.id} \
         --reference {params.genome} \

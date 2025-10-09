@@ -3,7 +3,7 @@ import os
 import yaml
 
 f = open("10X.config.yaml")
-globals().update(yaml.load(f))
+globals().update(yaml.load(f, Loader=yaml.SafeLoader))
 f.close()
 
 # Create sym-links and target lists
@@ -38,8 +38,7 @@ rule processSamples:
         params = params
     threads: 60
     shell: """
-        module load cellranger
-        cellranger count \
+        /localenv/pipegrp/cellranger-9.0.1/cellranger count \
             --create-bam true \
             --fastqs {wildcards.outdir}/fastq/{wildcards.sample} \
             --id {wildcards.sample} {params.params} \

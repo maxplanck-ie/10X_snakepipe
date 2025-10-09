@@ -46,6 +46,9 @@ def parse_args(defaults={"configfile": None}):
                         default=None,
                         help="Name of the Project")
 
+    parser.add_argument("--snakemakePath",
+                        help="specifiy the snakemake path until the bin directory")
+
     return parser
 
 
@@ -81,15 +84,20 @@ def main():
     yaml.dump(smk_cfg, f, default_flow_style=False)
     f.close()
 
-    module_load_cmd = "module load snakemake/5.16.0 &&".split()
+    if args.snakemakePath:
+        snakemake_executable = os.path.join(args.snakemakePath, "snakemake") if os.path.isdir(args.snakemakePath) else args.snakemakePath
+    else:
+        snakemake_executable = "snakemake"
+
     snakemake_cmd = """
-        snakemake --latency-wait {latency_wait} -s {snakefile} --jobs 1 -p --verbose --directory {workingdir} --configfile {configfile}
+       {snakemake_exe} --latency-wait {latency_wait} -s {snakefile} --jobs 1 -p --verbose --directory {workingdir} --configfile {configfile}
         """.format(latency_wait = cf["snakemake_latency_wait"],
                    snakefile = os.path.join(this_script_dir, "Snakefile"),
+                   snakemake_exe = snakemake_executable,
                    workingdir = args.outdir,
                    configfile = os.path.join(args.outdir, '10X_scATAC.config.yaml')).split()
 
-    cmd = " ".join(module_load_cmd + snakemake_cmd)
+    cmd = " ".join( snakemake_cmd)
     p = subprocess.Popen(cmd, shell=True)
     try:
         p.wait()
