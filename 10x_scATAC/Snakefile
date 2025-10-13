@@ -17,16 +17,24 @@ for base in config['samples']:
         allsamples.append(sample)
 
 # Glob over all fastq files in Project directory, and link them in appropriately
-for fqfile in list(Path(config['indir']).rglob("*fastq.gz")):
-  if 'optical' not in str(fqfile):
-    sambase = re.sub(r"_[RI][123].fastq.gz",'',fqfile.name)
+
+for fqfile in Path(config['indir']).rglob("*fastq.gz"):
+    if 'optical' in str(fqfile):
+        continue
+
+    fname = fqfile.name
+    sambase = re.sub(r'(_UMI)?_[RI]\d\.fastq\.gz$', '', fname)
     if sambase in allsamples:
-      # R1 from path/sample_R1.fastq.gz
-      Rtype = fqfile.with_suffix('').with_suffix('').name.split('_')[-1]
-      # sample_S1_L001_I1_001.fastq.gz
-      newname = fqlndir / (sambase + '_S1_L001_' + Rtype + '_001.fastq.gz')
-      if not newname.exists():
-        newname.symlink_to(fqfile)
+        # Extract read/index type (R1, R2, I1, I2)
+        Rtype_match = re.search(r'([RI]\d)\.fastq\.gz$', fname)
+        if Rtype_match:
+            Rtype = Rtype_match.group(1)
+        else:
+            raise ValueError(f"Cannot determine read/index type for {fname}")
+
+        newname = fqlndir / f"{sambase}_S1_L001_{Rtype}_001.fastq.gz"
+        if not newname.exists():
+            newname.symlink_to(fqfile)
 
 rule all:
   input:
@@ -46,8 +54,7 @@ rule processSamples:
         odir = config['outdir']
     shell: """
         cd {params.odir}
-        module load cellranger-atac
-        cellranger-atac count \
+        /localenv/pipegrp/cellranger-atac-2.2.0/cellranger-atac count \
         --fastqs {params.fqdir} \
         --id {params.id} \
         --reference {params.genome} \
