@@ -74,11 +74,11 @@ def main():
     # Samples should be a dict per four
     _samples = {}
     for _s in args.samples:
-        bases = '_'.join(_s.split('_')[:-1])
-        if bases not in _samples:
-            _samples[bases] = [_s]
+        #bases = '_'.join(_s.split('_')[:-1])
+        if _s not in _samples:
+            _samples[_s] = [_s]
         else:
-            _samples[bases].append(_s)
+            _samples[_s].append(_s)
     smk_cfg['samples'] = _samples
     f = open(os.path.join(args.outdir, "10X_scATAC.config.yaml"), "w")
     yaml.dump(smk_cfg, f, default_flow_style=False)
