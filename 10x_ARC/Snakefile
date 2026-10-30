@@ -1,0 +1,61 @@
+from pathlib import Path
+
+outdir = Path(config["outdir"])
+fqlndir = outdir / "fq_ln"
+
+GEX_READS = ["R1", "R2"]
+ATAC_READS = ["R1", "R2", "I1", "I2"]
+
+
+def link_fastqs(indir, sample, reads, dest):
+    """
+    Link <sample>_<read>.fastq.gz found under indir as cellranger-style
+    <sample>_S1_L001_<read>_001.fastq.gz in dest. The exact-name match leaves
+    the *_optical_duplicates files out.
+    """
+    dest.mkdir(parents=True, exist_ok=True)
+    for read in reads:
+        hits = sorted(Path(indir).rglob(f"{sample}_{read}.fastq.gz"))
+        if len(hits) != 1:
+            raise ValueError(
+                f"Expected exactly one {sample}_{read}.fastq.gz under {indir}, found {len(hits)}."
+            )
+        new = dest / f"{sample}_S1_L001_{read}_001.fastq.gz"
+        if not new.exists():
+            new.symlink_to(hits[0].resolve())
+
+
+for pair_id, pair in config["pairs"].items():
+    gexdir = fqlndir / pair_id / "gex"
+    atacdir = fqlndir / pair_id / "atac"
+    link_fastqs(config["gex_indir"], pair["gex"], GEX_READS, gexdir)
+    link_fastqs(config["atac_indir"], pair["atac"], ATAC_READS, atacdir)
+    (fqlndir / pair_id / "libraries.csv").write_text(
+        "fastqs,sample,library_type\n"
+        f"{gexdir},{pair['gex']},Gene Expression\n"
+        f"{atacdir},{pair['atac']},Chromatin Accessibility\n"
+    )
+
+
+rule all:
+    input:
+        expand(str(outdir / "{pair_id}.done"), pair_id=config["pairs"].keys())
+
+
+rule processSamples:
+    output:
+        touch(str(outdir / "{pair_id}.done"))
+    params:
+        cellranger = config["cellranger_arc"],
+        libraries = lambda wildcards: fqlndir / wildcards.pair_id / "libraries.csv",
+        genome = config["genome"],
+        params = config["cellranger_params"],
+        odir = config["outdir"]
+    shell: """
+        cd {params.odir}
+        {params.cellranger} count \
+            --id {wildcards.pair_id} \
+            --reference {params.genome} \
+            --libraries {params.libraries} \
+            {params.params}
+        """

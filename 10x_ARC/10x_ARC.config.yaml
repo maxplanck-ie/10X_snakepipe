@@ -1,0 +1,10 @@
+snakemake_latency_wait: 300
+cellranger_arc: "/package/cellranger-arc-2.0.2/cellranger-arc"
+mm10: "/data/repository/misc/cellranger_references/cellranger-arc/refdata-cellranger-arc-mm10-2020-A-2.0.0"
+mm10_gencodeM19: "/data/repository/misc/cellranger_references/cellranger-arc/refdata-cellranger-arc-mm10-2020-A-2.0.0"
+GRCm39: "/data/repository/misc/cellranger_references/cellranger-arc/refdata-cellranger-arc-GRCm39_gencode33"
+hg38: "/data/repository/misc/cellranger_references/cellranger-arc/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
+GRCh38: "/data/repository/misc/cellranger_references/cellranger-arc/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
+GRCh38_gencode40: "/data/repository/misc/cellranger_references/cellranger-arc/refdata-cellranger-arc-GRCh38-2020-A-2.0.0"
+dm6: "/data/repository/misc/cellranger_references/cellranger-arc/refdata-cellranger-arc-dm6_ensembl106"
+GRCz11: "/data/repository/misc/cellranger_references/cellranger-arc/refdata-cellranger-arc-GRCz11_ensembl100"
