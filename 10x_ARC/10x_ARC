@@ -75,9 +75,12 @@ def main():
         cf = yaml.safe_load(f)
 
     genome = args.genome
-    if "GRCm39" in genome:
-        # as GRCm39 passed the snakePipes YAML
-        genome = "GRCm39"
+    for key in ("GRCh38", "hg38", "GRCm39", "mm10"):
+        # Callers may pass a snakePipes organism yaml path; the genome key
+        # is a substring of it.
+        if key in genome:
+            genome = key
+            break
     cf["genome"] = cf.get(genome, genome)
     cf["pairs"] = parse_pairs(args.pair)
     cf["gex_indir"] = os.path.abspath(args.gex_indir)
