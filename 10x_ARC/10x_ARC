@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+
+__version__ = "0.0.1"
+
+__description__ = """
+10X Multiome (GEX + ATAC) analysis pipeline v{version}
+
+This uses cellranger-arc and is not intended to be run elsewhere.
+
+usage example:
+    10x_ARC -o outdir mm10 \\
+        --gex-indir lanes_1/Project_X --atac-indir lanes_2/Project_X \\
+        --pair PND20_con:PND20_con_RNA:PND20_con_ATAC
+""".format(version=__version__)
+
+import argparse
+import datetime
+import os
+import subprocess
+import sys
+
+import yaml
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        prog=sys.argv[0],
+        description=__description__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "genome",
+        help="Genome key from 10x_ARC.config.yaml, or the path of a cellranger-arc reference.",
+    )
+    parser.add_argument("-o", "--outdir", required=True, help="Output directory")
+    parser.add_argument(
+        "--gex-indir",
+        required=True,
+        help="Directory searched (recursively) for <gex_sample>_R1/_R2.fastq.gz",
+    )
+    parser.add_argument(
+        "--atac-indir",
+        required=True,
+        help="Directory searched (recursively) for <atac_sample>_R1/_R2/_I1/_I2.fastq.gz",
+    )
+    parser.add_argument(
+        "--pair",
+        action="append",
+        required=True,
+        metavar="ID:GEX_SAMPLE:ATAC_SAMPLE",
+        help="One Multiome sample: the cellranger-arc --id, and the GEX and ATAC "
+        "FASTQ basenames. Repeat for each sample.",
+    )
+    parser.add_argument(
+        "-c",
+        "--configfile",
+        default=os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "10x_ARC.config.yaml"
+        ),
+        help="configuration file (default: '%(default)s')",
+    )
+    parser.add_argument(
+        "--localcores",
+        type=int,
+        default=60,
+        help="Cores for cellranger-arc. The default is 60.",
+    )
+    parser.add_argument(
+        "--localmem",
+        type=int,
+        default=400,
+        help="Memory (GB) for cellranger-arc. The default is 400.",
+    )
+    parser.add_argument(
+        "--snakemakePath", help="specify the snakemake path until the bin directory"
+    )
+    return parser
+
+
+def parse_pairs(raw):
+    pairs = {}
+    for p in raw:
+        fields = p.split(":")
+        if len(fields) != 3 or not all(fields):
+            sys.exit(f"Error! --pair must be ID:GEX_SAMPLE:ATAC_SAMPLE, got {p!r}")
+        if fields[0] in pairs:
+            sys.exit(f"Error! Duplicate pair id {fields[0]!r}")
+        pairs[fields[0]] = {"gex": fields[1], "atac": fields[2]}
+    return pairs
+
+
+def main():
+    args = parse_args().parse_args()
+    this_script_dir = os.path.dirname(os.path.realpath(__file__))
+
+    for d in (args.gex_indir, args.atac_indir):
+        if not os.path.isdir(d):
+            sys.exit(f"\nError! Input directory not found! ({d})\n")
+    if not os.path.exists(args.configfile):
+        sys.exit(f"Provided configfile not found {args.configfile}.")
+
+    with open(args.configfile) as f:
+        cf = yaml.safe_load(f)
+
+    genome = args.genome
+    for key in ("GRCh38", "hg38", "GRCm39", "mm10", "dm6", "GRCz11"):
+        # Callers may pass a snakePipes organism yaml path; the genome key
+        # is a substring of it.
+        if key in genome:
+            genome = key
+            break
+    cf["genome"] = cf.get(genome, genome)
+    cf["pairs"] = parse_pairs(args.pair)
+    cf["gex_indir"] = os.path.abspath(args.gex_indir)
+    cf["atac_indir"] = os.path.abspath(args.atac_indir)
+    cf["outdir"] = os.path.abspath(args.outdir)
+    cf["cellranger_params"] = (
+        f"--jobmode local --disable-ui --nopreflight "
+        f"--localcores {args.localcores} --localmem {args.localmem}"
+    )
+
+    os.makedirs(cf["outdir"], exist_ok=True)
+    cfgfile = os.path.join(cf["outdir"], "10X_ARC.config.yaml")
+    with open(cfgfile, "w") as f:
+        yaml.dump(cf, f, default_flow_style=False)
+
+    if args.snakemakePath:
+        snakemake_exe = (
+            os.path.join(args.snakemakePath, "snakemake")
+            if os.path.isdir(args.snakemakePath)
+            else args.snakemakePath
+        )
+    else:
+        snakemake_exe = "snakemake"
+
+    cmd = [
+        snakemake_exe,
+        "--latency-wait",
+        str(cf["snakemake_latency_wait"]),
+        "-s",
+        os.path.join(this_script_dir, "Snakefile"),
+        "--jobs",
+        "1",
+        "--directory",
+        cf["outdir"],
+        "--configfile",
+        cfgfile,
+    ]
+    with open(os.path.join(cf["outdir"], "10X_BRB.log"), "a") as logf:
+        logf.write(
+            f"\n===== {datetime.datetime.now().isoformat(timespec='seconds')} {' '.join(sys.argv)} =====\n"
+        )
+        p = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        )
+        for line in p.stdout:
+            logf.write(line)
+            print(line.rstrip())
+        p.wait()
+    if p.returncode != 0:
+        sys.exit("Snakemake command failed")
+
+
+if __name__ == "__main__":
+    main()

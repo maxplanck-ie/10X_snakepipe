@@ -17,8 +17,12 @@ for f in files:
     if bname not in samples:
         samples[bname] = []
     samples[bname].append(bname)
-    R1 = "{}_S1_L001_R1_001.fastq.gz".format(os.path.join(outdir, "fastq", bname, bname))
-    R2 = "{}_S1_L001_R2_001.fastq.gz".format(os.path.join(outdir, "fastq", bname, bname))
+    R1 = "{}_S1_L001_R1_001.fastq.gz".format(
+        os.path.join(outdir, "fastq", bname, bname)
+    )
+    R2 = "{}_S1_L001_R2_001.fastq.gz".format(
+        os.path.join(outdir, "fastq", bname, bname)
+    )
     if not os.path.exists(R1):
         os.symlink(f, R1)
     if not os.path.exists(R2):
@@ -27,17 +31,20 @@ for f in files:
 
 
 rule all:
-    input: finished
+    input:
+        finished,
 
 
 rule processSamples:
-    output: "{outdir}/{sample}_finished"
+    output:
+        "{outdir}/{sample}_finished",
     params:
-        samples = lambda wildcards: ",".join(samples[wildcards.sample]),
-        genome = genome,
-        params = params
+        samples=lambda wildcards: ",".join(samples[wildcards.sample]),
+        genome=genome,
+        params=params,
     threads: 60
-    shell: """
+    shell:
+        """
         /localenv/pipegrp/cellranger-9.0.1/cellranger count \
             --create-bam true \
             --fastqs {wildcards.outdir}/fastq/{wildcards.sample} \
@@ -46,6 +53,7 @@ rule processSamples:
             --sample {params.samples}
         touch {output}
         """
+
 
 onsuccess:
     shell("rm -rf fastq")

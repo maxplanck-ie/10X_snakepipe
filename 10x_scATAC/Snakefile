@@ -5,28 +5,29 @@ import pandas as pd
 import sys
 from pathlib import Path
 import re
+
 print(config)
 
 # Set proper directories
-fqlndir = Path(config['outdir']) / 'fq_ln'
+fqlndir = Path(config["outdir"]) / "fq_ln"
 fqlndir.mkdir(parents=True, exist_ok=True)
 
 allsamples = []
-for base in config['samples']:
-    for sample in config['samples'][base]:
+for base in config["samples"]:
+    for sample in config["samples"][base]:
         allsamples.append(sample)
 
 # Glob over all fastq files in Project directory, and link them in appropriately
 
-for fqfile in Path(config['indir']).rglob("*fastq.gz"):
-    if 'optical' in str(fqfile):
+for fqfile in Path(config["indir"]).rglob("*fastq.gz"):
+    if "optical" in str(fqfile):
         continue
 
     fname = fqfile.name
-    sambase = re.sub(r'(_UMI)?_[RI]\d\.fastq\.gz$', '', fname)
+    sambase = re.sub(r"(_UMI)?_[RI]\d\.fastq\.gz$", "", fname)
     if sambase in allsamples:
         # Extract read/index type (R1, R2, I1, I2)
-        Rtype_match = re.search(r'([RI]\d)\.fastq\.gz$', fname)
+        Rtype_match = re.search(r"([RI]\d)\.fastq\.gz$", fname)
         if Rtype_match:
             Rtype = Rtype_match.group(1)
         else:
@@ -36,23 +37,24 @@ for fqfile in Path(config['indir']).rglob("*fastq.gz"):
         if not newname.exists():
             newname.symlink_to(fqfile)
 
+
 rule all:
-  input:
-    expand(
-        config['outdir'] + "/{sample}.done",
-        sample=config['samples'].keys()
-    )
+    input:
+        expand(config["outdir"] + "/{sample}.done", sample=config["samples"].keys()),
+
 
 rule processSamples:
-    output: touch( config['outdir'] + "/{sample}.done" )
+    output:
+        touch(config["outdir"] + "/{sample}.done"),
     params:
-        genome = config['genome'],
-        id = lambda wildcards: wildcards.sample,
-        samples = lambda wildcards: ','.join(config['samples'][wildcards.sample]),
-        params = config['cellranger_params'],
-        fqdir = fqlndir,
-        odir = config['outdir']
-    shell: """
+        genome=config["genome"],
+        id=lambda wildcards: wildcards.sample,
+        samples=lambda wildcards: ",".join(config["samples"][wildcards.sample]),
+        params=config["cellranger_params"],
+        fqdir=fqlndir,
+        odir=config["outdir"],
+    shell:
+        """
         cd {params.odir}
         /localenv/pipegrp/cellranger-atac-2.2.0/cellranger-atac count \
         --fastqs {params.fqdir} \
