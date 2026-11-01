@@ -14,6 +14,7 @@ usage example:
 """.format(version=__version__)
 
 import argparse
+import datetime
 import os
 import subprocess
 import sys
@@ -75,7 +76,7 @@ def main():
         cf = yaml.safe_load(f)
 
     genome = args.genome
-    for key in ("GRCh38", "hg38", "GRCm39", "mm10"):
+    for key in ("GRCh38", "hg38", "GRCm39", "mm10", "dm6", "GRCz11"):
         # Callers may pass a snakePipes organism yaml path; the genome key
         # is a substring of it.
         if key in genome:
@@ -106,7 +107,8 @@ def main():
            "--jobs", "1",
            "--directory", cf["outdir"],
            "--configfile", cfgfile]
-    with open(os.path.join(cf["outdir"], "10X_BRB.log"), "w") as logf:
+    with open(os.path.join(cf["outdir"], "10X_BRB.log"), "a") as logf:
+        logf.write(f"\n===== {datetime.datetime.now().isoformat(timespec='seconds')} {' '.join(sys.argv)} =====\n")
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         for line in p.stdout:
             logf.write(line)
