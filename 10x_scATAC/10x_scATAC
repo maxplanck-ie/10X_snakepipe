@@ -14,40 +14,37 @@ import subprocess
 import yaml
 import sys
 import os
-from glob import glob
+
 
 def parse_args(defaults={"configfile": None}):
-
     parser = argparse.ArgumentParser(prog=sys.argv[0])
-    required = parser.add_argument_group('required arguments')
-    optional = parser.add_argument_group('optional arguments')
+    required = parser.add_argument_group("required arguments")
+    optional = parser.add_argument_group("optional arguments")
 
-    #required
-    required.add_argument("-i",
-                        "--indir",
-                        dest = "indir",
-                        help="An input directory of bcl or fastq files.")
+    # required
+    required.add_argument(
+        "-i", "--indir", dest="indir", help="An input directory of bcl or fastq files."
+    )
 
+    required.add_argument("-o", "--outdir", dest="outdir", help="Output directory")
 
-    required.add_argument("-o",
-                        "--outdir",
-                        dest = "outdir",
-                        help="Output directory")
+    required.add_argument(
+        "genome",
+        help="genome acronym of target organism. Should match with a path in the 10x_scATAC.config.yaml",
+    )
 
-    required.add_argument("genome",
-                        help="genome acronym of target organism. Should match with a path in the 10x_scATAC.config.yaml")
+    required.add_argument(
+        "--samples",
+        default=None,
+        nargs="+",
+        help="List of samples id of a given project. space separated."
+        "This should be given if starts the pipeline from fastq",
+    )
+    required.add_argument("--projectID", default=None, help="Name of the Project")
 
-    required.add_argument("--samples",
-                        default=None,
-                        nargs='+',
-                        help="List of samples id of a given project. space separated."
-                        "This should be given if starts the pipeline from fastq")
-    required.add_argument("--projectID",
-                        default=None,
-                        help="Name of the Project")
-
-    parser.add_argument("--snakemakePath",
-                        help="specifiy the snakemake path until the bin directory")
+    parser.add_argument(
+        "--snakemakePath", help="specify the snakemake path until the bin directory"
+    )
 
     return parser
 
@@ -65,39 +62,47 @@ def main():
 
     # Set the params and genome
     smk_cfg = {}
-    smk_cfg['indir'] = os.path.abspath(args.indir)
-    smk_cfg['project'] = args.projectID
-    smk_cfg['outdir'] = os.path.abspath(args.outdir)
-    smk_cfg['genome'] = cf[args.genome]
-    smk_cfg['cellranger_params'] = "--jobmode local --disable-ui --nopreflight --localcores 60 --localmem 400 "
+    smk_cfg["indir"] = os.path.abspath(args.indir)
+    smk_cfg["project"] = args.projectID
+    smk_cfg["outdir"] = os.path.abspath(args.outdir)
+    smk_cfg["genome"] = cf[args.genome]
+    smk_cfg["cellranger_params"] = (
+        "--jobmode local --disable-ui --nopreflight --localcores 60 --localmem 400 "
+    )
 
     # Samples should be a dict per four
     _samples = {}
     for _s in args.samples:
-        #bases = '_'.join(_s.split('_')[:-1])
+        # bases = '_'.join(_s.split('_')[:-1])
         if _s not in _samples:
             _samples[_s] = [_s]
         else:
             _samples[_s].append(_s)
-    smk_cfg['samples'] = _samples
+    smk_cfg["samples"] = _samples
     f = open(os.path.join(args.outdir, "10X_scATAC.config.yaml"), "w")
     yaml.dump(smk_cfg, f, default_flow_style=False)
     f.close()
 
     if args.snakemakePath:
-        snakemake_executable = os.path.join(args.snakemakePath, "snakemake") if os.path.isdir(args.snakemakePath) else args.snakemakePath
+        snakemake_executable = (
+            os.path.join(args.snakemakePath, "snakemake")
+            if os.path.isdir(args.snakemakePath)
+            else args.snakemakePath
+        )
     else:
         snakemake_executable = "snakemake"
 
     snakemake_cmd = """
        {snakemake_exe} --latency-wait {latency_wait} -s {snakefile} --jobs 1 -p --verbose --directory {workingdir} --configfile {configfile}
-        """.format(latency_wait = cf["snakemake_latency_wait"],
-                   snakefile = os.path.join(this_script_dir, "Snakefile"),
-                   snakemake_exe = snakemake_executable,
-                   workingdir = args.outdir,
-                   configfile = os.path.join(args.outdir, '10X_scATAC.config.yaml')).split()
+        """.format(
+        latency_wait=cf["snakemake_latency_wait"],
+        snakefile=os.path.join(this_script_dir, "Snakefile"),
+        snakemake_exe=snakemake_executable,
+        workingdir=args.outdir,
+        configfile=os.path.join(args.outdir, "10X_scATAC.config.yaml"),
+    ).split()
 
-    cmd = " ".join( snakemake_cmd)
+    cmd = " ".join(snakemake_cmd)
     p = subprocess.Popen(cmd, shell=True)
     try:
         p.wait()
@@ -109,6 +114,7 @@ def main():
             # kill snakemake and child processes
             subprocess.call(["pkill", "-SIGTERM", "-P", str(p.pid)])
             print("SIGTERM sent to PID:", p.pid)
+
 
 if __name__ == "__main__":
     main()
