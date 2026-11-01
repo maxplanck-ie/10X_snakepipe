@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 outdir = Path(config["outdir"])
@@ -7,30 +8,53 @@ GEX_READS = ["R1", "R2"]
 ATAC_READS = ["R1", "R2", "I1", "I2"]
 
 
-def link_fastqs(indir, sample, reads, dest):
+def find_fastqs(indir, sample, reads):
     """
-    Link <sample>_<read>.fastq.gz found under indir as cellranger-style
-    <sample>_S1_L001_<read>_001.fastq.gz in dest. The exact-name match leaves
-    the *_optical_duplicates files out.
+    Map each cellranger-style name <sample>_S1_L001_<read>_001.fastq.gz to the
+    resolved <sample>_<read>.fastq.gz found under indir. The exact-name match
+    leaves the *_optical_duplicates files out.
     """
-    dest.mkdir(parents=True, exist_ok=True)
+    found = {}
     for read in reads:
         hits = sorted(Path(indir).rglob(f"{sample}_{read}.fastq.gz"))
         if len(hits) != 1:
             raise ValueError(
                 f"Expected exactly one {sample}_{read}.fastq.gz under {indir}, found {len(hits)}."
             )
-        new = dest / f"{sample}_S1_L001_{read}_001.fastq.gz"
-        if not new.exists():
-            new.symlink_to(hits[0].resolve())
+        found[f"{sample}_S1_L001_{read}_001.fastq.gz"] = hits[0].resolve()
+    return found
+
+
+def is_stale(dest, found):
+    """True if dest holds a broken link, or a link not matching the current inputs."""
+    if not dest.is_dir():
+        return False
+    for link in dest.iterdir():
+        if not link.is_symlink():
+            continue
+        if link.name not in found or not link.exists() or link.resolve() != found[link.name]:
+            return True
+    return False
 
 
 for pair_id, pair in config["pairs"].items():
-    gexdir = fqlndir / pair_id / "gex"
-    atacdir = fqlndir / pair_id / "atac"
-    link_fastqs(config["gex_indir"], pair["gex"], GEX_READS, gexdir)
-    link_fastqs(config["atac_indir"], pair["atac"], ATAC_READS, atacdir)
-    (fqlndir / pair_id / "libraries.csv").write_text(
+    pair_dir = fqlndir / pair_id
+    gexdir = pair_dir / "gex"
+    atacdir = pair_dir / "atac"
+    wanted = {
+        gexdir: find_fastqs(config["gex_indir"], pair["gex"], GEX_READS),
+        atacdir: find_fastqs(config["atac_indir"], pair["atac"], ATAC_READS),
+    }
+    # A rerun after an interrupted count can leave links to missing or
+    # other-lane FASTQs; rebuild the whole pair rather than patch it.
+    if any(is_stale(d, found) for d, found in wanted.items()):
+        shutil.rmtree(pair_dir)
+    for dest, found in wanted.items():
+        dest.mkdir(parents=True, exist_ok=True)
+        for name, target in found.items():
+            if not (dest / name).is_symlink():
+                (dest / name).symlink_to(target)
+    (pair_dir / "libraries.csv").write_text(
         "fastqs,sample,library_type\n"
         f"{gexdir},{pair['gex']},Gene Expression\n"
         f"{atacdir},{pair['atac']},Chromatin Accessibility\n"
@@ -53,6 +77,7 @@ rule processSamples:
         odir = config["outdir"]
     shell: """
         cd {params.odir}
+        rm -f {params.odir}/{wildcards.pair_id}/_lock
         {params.cellranger} count \
             --id {wildcards.pair_id} \
             --reference {params.genome} \
