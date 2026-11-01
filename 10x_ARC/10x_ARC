@@ -28,25 +28,52 @@ def parse_args():
         description=__description__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("genome",
-                        help="Genome key from 10x_ARC.config.yaml, or the path of a cellranger-arc reference.")
+    parser.add_argument(
+        "genome",
+        help="Genome key from 10x_ARC.config.yaml, or the path of a cellranger-arc reference.",
+    )
     parser.add_argument("-o", "--outdir", required=True, help="Output directory")
-    parser.add_argument("--gex-indir", required=True,
-                        help="Directory searched (recursively) for <gex_sample>_R1/_R2.fastq.gz")
-    parser.add_argument("--atac-indir", required=True,
-                        help="Directory searched (recursively) for <atac_sample>_R1/_R2/_I1/_I2.fastq.gz")
-    parser.add_argument("--pair", action="append", required=True, metavar="ID:GEX_SAMPLE:ATAC_SAMPLE",
-                        help="One Multiome sample: the cellranger-arc --id, and the GEX and ATAC "
-                             "FASTQ basenames. Repeat for each sample.")
-    parser.add_argument("-c", "--configfile",
-                        default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "10x_ARC.config.yaml"),
-                        help="configuration file (default: '%(default)s')")
-    parser.add_argument("--localcores", type=int, default=60,
-                        help="Cores for cellranger-arc. The default is 60.")
-    parser.add_argument("--localmem", type=int, default=400,
-                        help="Memory (GB) for cellranger-arc. The default is 400.")
-    parser.add_argument("--snakemakePath",
-                        help="specifiy the snakemake path until the bin directory")
+    parser.add_argument(
+        "--gex-indir",
+        required=True,
+        help="Directory searched (recursively) for <gex_sample>_R1/_R2.fastq.gz",
+    )
+    parser.add_argument(
+        "--atac-indir",
+        required=True,
+        help="Directory searched (recursively) for <atac_sample>_R1/_R2/_I1/_I2.fastq.gz",
+    )
+    parser.add_argument(
+        "--pair",
+        action="append",
+        required=True,
+        metavar="ID:GEX_SAMPLE:ATAC_SAMPLE",
+        help="One Multiome sample: the cellranger-arc --id, and the GEX and ATAC "
+        "FASTQ basenames. Repeat for each sample.",
+    )
+    parser.add_argument(
+        "-c",
+        "--configfile",
+        default=os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "10x_ARC.config.yaml"
+        ),
+        help="configuration file (default: '%(default)s')",
+    )
+    parser.add_argument(
+        "--localcores",
+        type=int,
+        default=60,
+        help="Cores for cellranger-arc. The default is 60.",
+    )
+    parser.add_argument(
+        "--localmem",
+        type=int,
+        default=400,
+        help="Memory (GB) for cellranger-arc. The default is 400.",
+    )
+    parser.add_argument(
+        "--snakemakePath", help="specify the snakemake path until the bin directory"
+    )
     return parser
 
 
@@ -98,18 +125,34 @@ def main():
         yaml.dump(cf, f, default_flow_style=False)
 
     if args.snakemakePath:
-        snakemake_exe = os.path.join(args.snakemakePath, "snakemake") if os.path.isdir(args.snakemakePath) else args.snakemakePath
+        snakemake_exe = (
+            os.path.join(args.snakemakePath, "snakemake")
+            if os.path.isdir(args.snakemakePath)
+            else args.snakemakePath
+        )
     else:
         snakemake_exe = "snakemake"
 
-    cmd = [snakemake_exe, "--latency-wait", str(cf["snakemake_latency_wait"]),
-           "-s", os.path.join(this_script_dir, "Snakefile"),
-           "--jobs", "1",
-           "--directory", cf["outdir"],
-           "--configfile", cfgfile]
+    cmd = [
+        snakemake_exe,
+        "--latency-wait",
+        str(cf["snakemake_latency_wait"]),
+        "-s",
+        os.path.join(this_script_dir, "Snakefile"),
+        "--jobs",
+        "1",
+        "--directory",
+        cf["outdir"],
+        "--configfile",
+        cfgfile,
+    ]
     with open(os.path.join(cf["outdir"], "10X_BRB.log"), "a") as logf:
-        logf.write(f"\n===== {datetime.datetime.now().isoformat(timespec='seconds')} {' '.join(sys.argv)} =====\n")
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        logf.write(
+            f"\n===== {datetime.datetime.now().isoformat(timespec='seconds')} {' '.join(sys.argv)} =====\n"
+        )
+        p = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        )
         for line in p.stdout:
             logf.write(line)
             print(line.rstrip())

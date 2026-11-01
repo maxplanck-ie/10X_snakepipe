@@ -32,7 +32,11 @@ def is_stale(dest, found):
     for link in dest.iterdir():
         if not link.is_symlink():
             continue
-        if link.name not in found or not link.exists() or link.resolve() != found[link.name]:
+        if (
+            link.name not in found
+            or not link.exists()
+            or link.resolve() != found[link.name]
+        ):
             return True
     return False
 
@@ -63,19 +67,20 @@ for pair_id, pair in config["pairs"].items():
 
 rule all:
     input:
-        expand(str(outdir / "{pair_id}.done"), pair_id=config["pairs"].keys())
+        expand(str(outdir / "{pair_id}.done"), pair_id=config["pairs"].keys()),
 
 
 rule processSamples:
     output:
-        touch(str(outdir / "{pair_id}.done"))
+        touch(str(outdir / "{pair_id}.done")),
     params:
-        cellranger = config["cellranger_arc"],
-        libraries = lambda wildcards: fqlndir / wildcards.pair_id / "libraries.csv",
-        genome = config["genome"],
-        params = config["cellranger_params"],
-        odir = config["outdir"]
-    shell: """
+        cellranger=config["cellranger_arc"],
+        libraries=lambda wildcards: fqlndir / wildcards.pair_id / "libraries.csv",
+        genome=config["genome"],
+        params=config["cellranger_params"],
+        odir=config["outdir"],
+    shell:
+        """
         cd {params.odir}
         rm -f {params.odir}/{wildcards.pair_id}/_lock
         {params.cellranger} count \
