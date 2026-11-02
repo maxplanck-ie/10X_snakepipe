@@ -57,9 +57,9 @@ rule processSamples:
         """
         cd {params.odir}
         /localenv/pipegrp/cellranger-atac-2.2.0/cellranger-atac count \
-        --fastqs {params.fqdir} \
-        --id {params.id} \
-        --reference {params.genome} \
-        --sample {params.samples} \
-        {params.params}
+            --fastqs {params.fqdir} \
+            --id {params.id} \
+            --reference {params.genome} \
+            --sample {params.samples} \
+            {params.params}
         """

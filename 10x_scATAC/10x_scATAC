@@ -10,10 +10,11 @@
 # """.format(version=__version__)
 
 import argparse
-import subprocess
-import yaml
-import sys
 import os
+import subprocess
+import sys
+
+import yaml
 
 
 def parse_args(defaults={"configfile": None}):
@@ -55,7 +56,7 @@ def main():
     args = parser.parse_args()
 
     if not os.path.exists(args.indir):
-        sys.exit("\nError! Input directory not found! ({})\n".format(args.indir))
+        sys.exit(f"\nError! Input directory not found! ({args.indir})\n")
     this_script_dir = os.path.dirname(__file__)
     with open(os.path.join(this_script_dir, "10x_scATAC.config.yaml")) as f:
         cf = yaml.safe_load(f)

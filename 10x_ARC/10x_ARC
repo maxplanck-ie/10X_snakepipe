@@ -2,8 +2,8 @@
 
 __version__ = "0.0.1"
 
-__description__ = """
-10X Multiome (GEX + ATAC) analysis pipeline v{version}
+__description__ = f"""
+10X Multiome (GEX + ATAC) analysis pipeline v{__version__}
 
 This uses cellranger-arc and is not intended to be run elsewhere.
 
@@ -11,7 +11,7 @@ usage example:
     10x_ARC -o outdir mm10 \\
         --gex-indir lanes_1/Project_X --atac-indir lanes_2/Project_X \\
         --pair PND20_con:PND20_con_RNA:PND20_con_ATAC
-""".format(version=__version__)
+"""
 
 import argparse
 import datetime
