@@ -38,11 +38,11 @@ rule all:
 rule processSamples:
     output:
         "{outdir}/{sample}_finished",
+    threads: 60
     params:
         samples=lambda wildcards: ",".join(samples[wildcards.sample]),
         genome=genome,
         params=params,
-    threads: 60
     shell:
         """
         /localenv/pipegrp/cellranger-9.0.1/cellranger count \

@@ -2,20 +2,21 @@
 
 __version__ = "0.0.1"
 
-__description__ = """
-10X single-cell RNAseq analysis pipeline v{version}
+__description__ = f"""
+10X single-cell RNAseq analysis pipeline v{__version__}
 
 This uses cellranger and is not intended to be run elsewhere.
 
 usage example:
     10X inputdir outputdir mm10
-""".format(version=__version__)
+"""
 
 import argparse
-import subprocess
-import yaml
-import sys
 import os
+import subprocess
+import sys
+
+import yaml
 
 
 def parse_args(defaults={"configfile": None}):
@@ -80,7 +81,7 @@ def main():
     args = parser.parse_args()
 
     if not os.path.exists(args.indir):
-        sys.exit("\nError! Input directory not found! ({})\n".format(args.indir))
+        sys.exit(f"\nError! Input directory not found! ({args.indir})\n")
     logf = open(os.path.join(args.indir, "10X_BRB.log"), "w")
 
     if args.configfile and not os.path.exists(args.configfile):
@@ -107,9 +108,7 @@ def main():
     else:
         cf["genome"] = genome
     # --overrides???
-    params = "--jobmode local --localcores {} --localmem {} --disable-ui --nopreflight --maxjobs {}".format(
-        args.localcores, args.localmem, args.maxjobs
-    )
+    params = f"--jobmode local --localcores {args.localcores} --localmem {args.localmem} --disable-ui --nopreflight --maxjobs {args.maxjobs}"
     cf["params"] = params
     f = open(os.path.join(args.outdir, "10X.config.yaml"), "w")
     yaml.dump(cf, f, default_flow_style=False)
